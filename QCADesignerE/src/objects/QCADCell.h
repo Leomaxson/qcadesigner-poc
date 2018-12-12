@@ -29,7 +29,6 @@
 #ifndef _OBJECTS_QCADCell_H_
 #define _OBJECTS_QCADCell_H_
 
-#include <stdint.h>
 #include <glib-object.h>
 #include "../gdk_structs.h"
 #include "../exp_array.h"
@@ -42,14 +41,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
-// TODO: These two macros need to be changed to make incremending, decrementing
-// and undo/redo work correctly for Bennett clocking.
-#define CLOCK_INC(c,cMax) (((c)+1)%(cMax))
-#define CLOCK_DEC(c,cMax) (0==(c)?((cMax)-1):(c)-1)
-
-//Mod By Sardinha
-#define MAX_CLOCK_RELAX 255
-//EndMod
+#define CLOCK_INC(c) (((c)+1)%4)
+#define CLOCK_DEC(c) (0==(c)?3:(c)-1)
 
 typedef enum
   {
@@ -62,9 +55,6 @@ typedef enum
   {
   QCAD_CELL_NORMAL,
   QCAD_CELL_INPUT,
-//Sardinha
-  QCAD_CELL_NULL,
-//EndMod
   QCAD_CELL_OUTPUT,
   QCAD_CELL_FIXED,
   QCAD_CELL_LAST_FUNCTION
