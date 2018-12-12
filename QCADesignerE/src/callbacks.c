@@ -65,7 +65,6 @@
 #include "qcadstock.h"
 #include "objects/QCADClockCombo.h"
 #include "generic_utils.h"
-#include "util.h"
 
 // dialogs and windows used //
 #include "about.h"
@@ -108,7 +107,7 @@ extern GdkColor clrYellow ;
 extern GdkColor clrBlack ;
 
 static print_design_OP print_options =
-  {{612, 792, 72, 72, 72, 72, TRUE, TRUE, NULL}, 3, TRUE, FALSE, TRUE, TRUE, NULL, 0, 1, 1} ;
+  {{612, 792, 72, 72, 72, 72, TRUE, TRUE, NULL}, 3, TRUE, FALSE, TRUE, TRUE, NULL, 0, 1, 1, 1} ;
 
 extern char *layer_pixmap_stock_id[LAYER_TYPE_LAST_TYPE] ;
 
@@ -690,7 +689,7 @@ void on_clock_increment_menu_item_activate(GtkMenuItem * menuitem, gpointer user
        if (NULL != lstItrSel->data)
          {
          project_options.bDesignAltered = bFoundSelection = TRUE ;
-         qcad_cell_set_clock (QCAD_CELL (lstItrSel->data), CLOCK_INC (QCAD_CELL (lstItrSel->data)->cell_options.clock,getNumberOfTotalClocks())) ;
+         qcad_cell_set_clock (QCAD_CELL (lstItrSel->data), CLOCK_INC (QCAD_CELL (lstItrSel->data)->cell_options.clock)) ;
          }
 
   if (bFoundSelection)
@@ -1398,7 +1397,8 @@ void on_clocks_combo_changed (GtkWidget *widget, gpointer data)
   int idxClock = qcad_clock_combo_get_clock (QCAD_CLOCK_COMBO (data)) ;
   gboolean bFoundSelection = FALSE ;
 
-  if (idxClock > -1 && idxClock < getNumberOfTotalClocks())
+  // TODO: This needs to be changed for Bennett clocking (no idea into what yet):
+  if (idxClock > -1 && idxClock < 4 * 4)
     {
     EXP_ARRAY *arSelObjs = NULL ;
     arSelObjs = design_selection_get_object_array (project_options.design) ;
@@ -2088,8 +2088,6 @@ static void reflect_layer_status (QCADLayer *layer)
     gtk_widget_set_sensitive (main_window.rotate_cell_button, bSensitive) ;
     gtk_widget_show (main_window.clocks_combo_table) ;
     gtk_widget_set_sensitive (main_window.clocks_combo_table, bSensitive) ;
-    gtk_widget_show (main_window.clocks_count_spin_button) ;
-    gtk_widget_set_sensitive (main_window.clocks_count_spin_button, bSensitive) ;
     }
   else
   if (LAYER_TYPE_CLOCKING == layer->type)
@@ -2102,7 +2100,6 @@ static void reflect_layer_status (QCADLayer *layer)
     gtk_widget_hide (main_window.toggle_alt_display_button) ;
     gtk_widget_hide (main_window.rotate_cell_button) ;
     gtk_widget_hide (main_window.clocks_combo_table) ;
-    gtk_widget_hide (main_window.clocks_count_spin_button) ;
     }
   else
   if (LAYER_TYPE_SUBSTRATE == layer->type)
@@ -2114,7 +2111,6 @@ static void reflect_layer_status (QCADLayer *layer)
     gtk_widget_hide (main_window.toggle_alt_display_button) ;
     gtk_widget_hide (main_window.rotate_cell_button) ;
     gtk_widget_hide (main_window.clocks_combo_table) ;
-    gtk_widget_hide (main_window.clocks_count_spin_button) ;
 
     gtk_widget_show (main_window.substrate_button) ;
     gtk_widget_set_sensitive (main_window.substrate_button, bSensitive) ;
@@ -2129,8 +2125,6 @@ static void reflect_layer_status (QCADLayer *layer)
     gtk_widget_hide (main_window.toggle_alt_display_button) ;
     gtk_widget_hide (main_window.rotate_cell_button) ;
     gtk_widget_hide (main_window.clocks_combo_table) ;
-    gtk_widget_hide (main_window.clocks_count_spin_button) ;
-    
 
     gtk_widget_show (main_window.label_button) ;
     gtk_widget_set_sensitive (main_window.label_button, bSensitive) ;
@@ -2346,58 +2340,4 @@ static void real_coords_from_rulers (int *px, int *py)
   (*px) = world_to_real_x (position) ;
   gtk_ruler_get_range (GTK_RULER (main_window.vertical_ruler), &lower, &upper, &position, &max_size) ;
   (*py) = world_to_real_y (position) ;
-  }
-
-/**
- * Handler called when the number o clock zones is changed.
- * @param widget The widget calling the handler.
- * @param data Data passsed as parameter.
- */
-void on_spin_button_value_changed(GtkWidget *widget, gpointer data)
-  {
-    int new_number_of_clocks;
-    int clocks_used, old_clocks_used;
-    GtkWidget *msg;
-    
-    // Salve number of clocks
-    old_clocks_used = getNumberOfClocks();
-    
-    // Gets the desired number of clocks and the used number of clocks.
-    new_number_of_clocks = gtk_spin_button_get_value_as_int((GtkSpinButton*)widget);
-    clocks_used = numberOfClocksUsed(project_options.design);
-    msg = NULL;
-    
-    // If the new number of clocks is invalid, warns the user and set the number 
-    // of clocks to the actual number of clocks used.
-    if(new_number_of_clocks < clocks_used) {
-        new_number_of_clocks = clocks_used;
-        gtk_dialog_run(GTK_DIALOG(msg = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
-            _("Can't reduce the number of clock zones. Some of the cells are using the last zone.")))) ;
-        gtk_spin_button_set_value((GtkSpinButton*)widget, (gdouble)clocks_used);
-        
-    } else {
-        gtk_dialog_run (GTK_DIALOG (msg = gtk_message_dialog_new (NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_CLOSE,
-            _("Number of clock zones changed.")))) ;
-    }
-    gtk_widget_hide (msg) ;
-    gtk_widget_destroy (msg) ;
-    
-    // Destroy clock combo
-    gtk_widget_destroy(project_options.main_window->combo);
-
-    gtk_widget_hide(project_options.main_window->clocks_combo_table);
-    gtk_widget_show(project_options.main_window->clocks_combo_table);
-
-    setNumberOfClocks(new_number_of_clocks);
-
-    GtkWidget * clocks_combo;
-    project_options.main_window->combo = clocks_combo = qcad_clock_combo_new () ;
-    GTK_WIDGET_UNSET_FLAGS (clocks_combo, GTK_CAN_FOCUS | GTK_CAN_DEFAULT) ;
-    gtk_widget_show (clocks_combo) ;
-    gtk_table_attach (GTK_TABLE (project_options.main_window->clocks_combo_table), clocks_combo, 1, 2, 0, 1, 0, 0, 0, 0) ;
-
-    g_signal_connect (G_OBJECT (clocks_combo), "changed", (GCallback)on_clocks_combo_changed, clocks_combo);
-    
-    // Update clock cells
-    updateNumberOfClocksUsed(project_options.design, old_clocks_used);
   }
