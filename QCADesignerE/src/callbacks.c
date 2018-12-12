@@ -1397,8 +1397,7 @@ void on_clocks_combo_changed (GtkWidget *widget, gpointer data)
   int idxClock = qcad_clock_combo_get_clock (QCAD_CLOCK_COMBO (data)) ;
   gboolean bFoundSelection = FALSE ;
 
-  // TODO: This needs to be changed for Bennett clocking (no idea into what yet):
-  if (idxClock > -1 && idxClock < 4 * 4)
+  if (idxClock > -1 && idxClock < 4)
     {
     EXP_ARRAY *arSelObjs = NULL ;
     arSelObjs = design_selection_get_object_array (project_options.design) ;
